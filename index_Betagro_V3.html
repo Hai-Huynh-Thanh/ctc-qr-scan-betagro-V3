@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+ 
+  <style>
+    body { background: #f2f4f7; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    .app-box { max-width: 440px; margin: auto; background: #fff; min-height: 100vh; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+    .header { display: flex; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 2px solid #e0e0e0; margin-bottom: 15px;}
+    .logo { height: 50px; }
+    .main-title { font-size: 17px; font-weight: 700; color: #003366; }
+    
+    /* Tabs style */
+    .nav-pills .nav-link { border-radius: 8px; color: #555; padding: 8px 12px; font-size: 14px; font-weight: 500;}
+    .nav-pills .nav-link.active { background-color: #0d6efd; color: white; }
+    
+    /* List formula */
+    #formulaList li { cursor: pointer; font-size: 15px; }
+    #formulaList li:hover { background-color: #f1f5ff; }
+    .progress-box { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-top: 15px; border: 1px solid #e2e8f0; }
+    .material-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; }
+    .done-item { background-color: #e8f5e9; font-style: italic; color: #2e7d32; }
+    
+    #reader { width: 100%; background: #000; border-radius: 12px; overflow: hidden; position: relative; min-height: 250px; display: none; }
+    .btn-custom-cam { background-color: #e8f5e9 !important; color: #1b5e20 !important; border: 1px solid #c8e6c9 !important; font-weight: bold; }
+    .batch-container { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 6px; padding: 8px 12px; margin-top: 10px; }
+    
+    .table-sm td, .table-sm th { font-size: 12px; }
+  </style>
+</head>
+<body>
+ 
+<div class="app-box">
+  <div class="header">
+    <img src="https://ctcbio.com.vn/wp-content/uploads/2017/06/logo-ctc2-250x250.jpg" class="logo">
+    <div class="title">
+      <div class="main-title">Material & Warehouse MES</div>
+      <div class="text-muted" style="font-size: 12px;">Hệ thống sản xuất & Tồn kho</div>
+    </div>
+  </div>
+
+  <ul class="nav nav-pills nav-fill mb-3" id="pills-tab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-scan">Quét SX</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-import">Nhập Kho</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-inventory" onclick="loadInventory()">Tồn Kho</button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    
+    <div class="tab-pane fade show active" id="tab-scan">
+      <div class="mb-3 position-relative">
+        <label class="form-label fw-bold text-dark mb-0">Công thức đang sản xuất</label>
+        <input type="text" class="form-control form-control-lg" id="formula" placeholder="🔍 Gõ tìm công thức..." autocomplete="off">
+        <ul id="formulaList" class="list-group position-absolute w-100 d-none" style="z-index:1000; max-height:200px; overflow-y:auto;"></ul>
+      </div>
+
+      <div id="batchInfoBox" class="batch-container d-none">
+        <div class="d-flex justify-content-between align-items-center">
+          <div><span class="fw-bold text-dark d-block" style="font-size: 14px;">Mã số mẻ:</span></div>
+          <div id="txtBatchId" class="badge bg-primary fs-5 font-monospace">000B40000</div>
+        </div>
+      </div>
+     
+      <div id="progressContainer" class="progress-box d-none">
+        <div class="fw-bold text-dark border-bottom pb-1 mb-2">📋 Tiến trình nạp:</div>
+        <div id="bomList"></div>
+        <div id="batchCompleteZone" class="mt-3 d-none">
+           <button class="btn btn-primary btn-lg w-100 shadow" onclick="goToNewBatch()">🎉 HOÀN TẤT MẺ</button>
+        </div>
+      </div>
+     
+      <div class="d-grid gap-2 my-3">
+        <button class="btn btn-custom-cam btn-lg shadow-sm" id="btnStartCam" onclick="startCameraDirectly()" disabled>📷 Bật Camera</button>
+        <button class="btn btn-danger btn-lg d-none shadow-sm" id="btnStopCam" onclick="stopCameraDirectly()">🛑 Tắt Camera</button>
+      </div>
+      <div id="reader" class="mb-3 shadow-sm"></div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-import">
+      <div class="card shadow-sm border-0">
+        <div class="card-body bg-light rounded">
+          <h6 class="fw-bold mb-3 text-primary">📦 Nhập hàng vào kho (Inbound)</h6>
+          <div class="mb-2">
+            <label class="form-label text-muted mb-0">Mã nguyên liệu (Code)</label>
+            <input type="text" id="in_code" class="form-control" onchange="autoLookupName()" placeholder="Nhập Code và ấn Enter/Tab">
+          </div>
+          <div class="mb-2">
+            <label class="form-label text-muted mb-0">Tên nguyên liệu</label>
+            <input type="text" id="in_name" class="form-control" readonly style="background:#e9ecef;">
+          </div>
+          <div class="mb-2">
+            <label class="form-label text-muted mb-0 fw-bold text-danger">Số Lô (Lot Number) *</label>
+            <input type="text" id="in_lot" class="form-control" placeholder="VD: L00123">
+          </div>
+          <div class="row mb-2">
+            <div class="col-6">
+              <label class="form-label text-muted mb-0">Quy cách (kg/bao)</label>
+              <input type="number" id="in_pack" class="form-control" oninput="calcWeight()">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted mb-0">Số lượng (Bao)</label>
+              <input type="number" id="in_bags" class="form-control" oninput="calcWeight()">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-6">
+              <label class="form-label text-muted mb-0">Khối lượng (kg)</label>
+              <input type="number" id="in_weight" class="form-control" readonly style="background:#e9ecef;">
+            </div>
+            <div class="col-6">
+              <label class="form-label text-muted mb-0">Hạn sử dụng</label>
+              <input type="date" id="in_exp" class="form-control">
+            </div>
+          </div>
+          <button class="btn btn-success w-100" onclick="submitWarehouse()">Lưu vào kho & Tạo QR</button>
+          
+          <div id="qrGenResult" class="mt-3 p-2 bg-white border rounded d-none text-center">
+            <small class="d-block text-muted">Chuỗi QR gợi ý (in ra tem):</small>
+            <strong id="qrStringOutput" class="text-dark"></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="tab-inventory">
+      <button class="btn btn-outline-primary btn-sm mb-2 w-100" onclick="loadInventory()">🔄 Cập nhật Tồn kho</button>
+      <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+        <table class="table table-sm table-bordered table-striped bg-white text-center">
+          <thead class="table-dark sticky-top">
+            <tr>
+              <th>Tên NL</th>
+              <th>Số Lô</th>
+              <th>Tồn(Bao)</th>
+              <th>HSD</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryBody">
+            </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div> <div id="loading" class="text-center my-3 d-none">
+    <div class="spinner-border text-primary"></div>
+    <div class="mt-2 text-muted">Đang xử lý...</div>
+  </div>
+</div>
+ 
+<script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+ 
+<script>
+  // QUAN TRỌNG: Hãy thay link bằng URL Web App mới của bạn sau khi Deploy New Deployment
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyaMMB6QjhkdMZie80wgmBDoEfAiaxKOd6UUgfcI-6Iw-AaxEuzvoEmbInqbr8p5fvz/exec"; 
+
+  // --- VARIABLES ---
+  let html5Qrcode;
+  let allFormulas = [];
+  let isProcessingScan = false;
+  let currentBatchId = "";
+  const input = document.getElementById("formula");
+  const list = document.getElementById("formulaList");
+
+  // --- INIT ---
+  document.addEventListener("DOMContentLoaded", () => {
+    html5Qrcode = new Html5Qrcode("reader");
+    showLoading();
+    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getAllowedFormulas" }) })
+    .then(res => res.json())
+    .then(res => {
+      hideLoading();
+      if (res.status === "SUCCESS") { allFormulas = res.data; } 
+    }).catch(err => { hideLoading(); });
+  });
+
+  // --- AUTOCOMPLETE FORMULA ---
+  input.addEventListener("input", () => {
+    const keyword = input.value.toUpperCase().trim();
+    list.innerHTML = "";
+    if (!keyword || allFormulas.length === 0) { list.classList.add("d-none"); return; }
+    const matched = allFormulas.filter(f => f.toUpperCase().includes(keyword));
+    if (matched.length === 0) { list.classList.add("d-none"); return; }
+    matched.forEach(f => {
+      const li = document.createElement("li");
+      li.className = "list-group-item"; li.textContent = f;
+      li.onclick = () => {
+        input.value = f; list.classList.add("d-none");
+        fetchNewBatchIdAndLoadProgress(f);
+      };
+      list.appendChild(li);
+    });
+    list.classList.remove("d-none");
+  });
+
+  // --- CORE SCAN LOGIC ---
+  function fetchNewBatchIdAndLoadProgress(formulaName) {
+    showLoading();
+    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getNextBatchId" }) })
+    .then(res => res.json())
+    .then(res => {
+      if(res.status === "SUCCESS") {
+         currentBatchId = res.batchId;
+         document.getElementById("txtBatchId").textContent = currentBatchId;
+         document.getElementById("batchInfoBox").classList.remove("d-none");
+         loadFormulaProgress(formulaName);
+      } else { hideLoading(); }
+    }).catch(err => { hideLoading(); });
+  }
+ 
+  function loadFormulaProgress(formulaName) {
+    showLoading();
+    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getFormulaDetails", formula: formulaName, batchId: currentBatchId }) })
+    .then(res => res.json())
+    .then(res => {
+      hideLoading();
+      if (res.status !== "SUCCESS") return;
+      const bomProgress = res.data;
+      const container = document.getElementById("progressContainer");
+      const bomList = document.getElementById("bomList");
+      const btnStartCam = document.getElementById("btnStartCam");
+      const batchCompleteZone = document.getElementById("batchCompleteZone");
+      
+      bomList.innerHTML = "";
+      let totalItems = bomProgress.length;
+      let completedItems = 0;
+
+      if(totalItems > 0) {
+        container.classList.remove("d-none");
+        btnStartCam.disabled = false;
+        
+        bomProgress.forEach(item => {
+          const isDone = item.scannedBags >= item.reqBags;
+          if (isDone) completedItems++;
+          const div = document.createElement("div");
+          div.className = `material-item ${isDone ? 'done-item px-2 rounded' : ''}`;
+          div.innerHTML = `
+            <div style="max-width: 70%;">
+              <strong class="d-block">${item.name}</strong>
+              <small class="text-muted d-block">Mã: ${item.code} | Yêu cầu: ${item.reqWeight}kg</small>
+            </div>
+            <div>
+              <span class="badge ${isDone ? 'bg-success' : 'bg-warning text-dark'} fs-6">${item.scannedBags}/${item.reqBags} bao</span>
+            </div>
+          `;
+          bomList.appendChild(div);
+        });
+
+        if (completedItems === totalItems) {
+          batchCompleteZone.classList.remove("d-none");
+          stopCameraDirectly();
+        } else { batchCompleteZone.classList.add("d-none"); }
+      } else {
+        container.classList.add("d-none");
+        btnStartCam.disabled = true;
+      }
+    });
+  }
+
+  function goToNewBatch() {
+    input.value = ""; currentBatchId = "";
+    document.getElementById("progressContainer").classList.add("d-none");
+    document.getElementById("batchInfoBox").classList.add("d-none");
+    document.getElementById("btnStartCam").disabled = true;
+    stopCameraDirectly();
+    swal("Sẵn sàng!", "Vui lòng nhập công thức cho mẻ mới.", "info");
+  }
+
+  // --- CAMERA ---
+  function startCameraDirectly() {
+    document.getElementById("reader").style.display = "block";
+    document.getElementById("btnStartCam").classList.add("d-none");
+    document.getElementById("btnStopCam").classList.remove("d-none");
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length > 0) {
+        let cameraId = devices[0].id;
+        for (let i = 0; i < devices.length; i++) {
+          if (devices[i].label.toLowerCase().includes("back")) cameraId = devices[i].id;
+        }
+        html5Qrcode.start(cameraId, { fps: 10, qrbox: { width: 230, height: 230 } }, onScanSuccess, ()=>{})
+      }
+    });
+  }
+ 
+  function stopCameraDirectly() {
+    if (html5Qrcode) {
+      html5Qrcode.stop().then(() => {
+        document.getElementById("reader").style.display = "none";
+        document.getElementById("btnStartCam").classList.remove("d-none");
+        document.getElementById("btnStopCam").classList.add("d-none");
+        isProcessingScan = false;
+      }).catch(()=>{});
+    }
+  }
+ 
+  function onScanSuccess(decodedText) {
+    if (isProcessingScan) return; 
+    isProcessingScan = true; 
+    const formula = input.value.trim();
+    showLoading();
+ 
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "scanMaterial", materialQR: decodedText, formula: formula, batchId: currentBatchId })
+    }).then(res => res.json()).then(res => {
+      hideLoading();
+      if (res.status === "GREAT") {
+        swal({
+          title: "THÀNH CÔNG ✅",
+          text: `NL: ${res.materialName}\nLô: ${res.lotNumber}\nNạp bao thứ [${res.currentBag}/${res.totalBags}]\n\n*Hệ thống đã trừ 1 bao từ kho tồn.*`,
+          icon: "success",
+          timer: 2500,
+          buttons: false
+        }).then(() => {
+          loadFormulaProgress(formula);
+          isProcessingScan = false; 
+        });
+      } else {
+        swal("LỖI QUÉT ❌", res.message.replace(/<br>.*$/g, ''), "error").then(() => { isProcessingScan = false; });
+      }
+    }).catch(err => { hideLoading(); isProcessingScan = false; });
+  }
+
+  // --- WAREHOUSE FUNCTIONS ---
+  function autoLookupName() {
+    const code = document.getElementById("in_code").value.trim();
+    if(!code) return;
+    showLoading();
+    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getMaterialInfo", code: code }) })
+    .then(res => res.json()).then(res => {
+      hideLoading();
+      if(res.status === "SUCCESS") {
+        document.getElementById("in_name").value = res.name;
+        document.getElementById("in_pack").value = res.packSize;
+        calcWeight();
+      } else {
+        document.getElementById("in_name").value = "";
+        swal("Không tìm thấy", "Mã code chưa có trong định mức (BOM)", "warning");
+      }
+    });
+  }
+
+  function calcWeight() {
+    const pack = parseFloat(document.getElementById("in_pack").value) || 0;
+    const bags = parseFloat(document.getElementById("in_bags").value) || 0;
+    document.getElementById("in_weight").value = (pack * bags).toFixed(2);
+  }
+
+  function submitWarehouse() {
+    const data = {
+      code: document.getElementById("in_code").value.trim(),
+      name: document.getElementById("in_name").value.trim(),
+      lot: document.getElementById("in_lot").value.trim(),
+      packSize: parseFloat(document.getElementById("in_pack").value) || 0,
+      bags: parseFloat(document.getElementById("in_bags").value) || 0,
+      weight: parseFloat(document.getElementById("in_weight").value) || 0,
+      expiry: document.getElementById("in_exp").value
+    };
+
+    if(!data.code || !data.name || !data.lot || data.bags <= 0) {
+      swal("Thiếu thông tin", "Vui lòng điền đủ Code, Tên, Số Lô và Số bao > 0", "warning");
+      return;
+    }
+
+    showLoading();
+    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "importToWarehouse", data: data }) })
+    .then(res => res.json()).then(res => {
+      hideLoading();
+      if(res.status === "SUCCESS") {
+        swal("Thành công", "Đã nhập nguyên liệu vào kho!", "success");
+        const qrString = `${data.code}_${data.lot}`;
+        document.getElementById("qrStringOutput").innerText = qrString;
+        document.getElementById("qrGenResult").classList.remove("d-none");
+        
+        // Clear forms
+        document.getElementById("in_code").value = "";
+        document.getElementById("in_name").value = "";
+        document.getElementById("in_lot").value = "";
+        document.getElementById("in_pack").value = "";
+        document.getElementById("in_bags").value = "";
+        document.getElementById("in_weight").value = "";
+      } else { swal("Lỗi", res.message, "error"); }
+    });
+  }
+
+  // --- INVENTORY FUNCTIONS ---
+  function loadInventory() {
+    showLoading();
+    fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getInventory" }) })
+    .then(res => res.json()).then(res => {
+      hideLoading();
+      if(res.status === "SUCCESS") {
+        const tbody = document.getElementById("inventoryBody");
+        tbody.innerHTML = "";
+        if(res.data.length === 0) {
+          tbody.innerHTML = "<tr><td colspan='4' class='text-muted'>Kho trống</td></tr>";
+          return;
+        }
+        res.data.forEach(item => {
+          tbody.innerHTML += `
+            <tr>
+              <td class="text-start text-truncate" style="max-width: 120px;" title="${item.name}">${item.name}<br><small class="text-primary">${item.code}</small></td>
+              <td class="fw-bold">${item.lot}</td>
+              <td class="text-danger fw-bold">${item.bags}</td>
+              <td style="font-size: 11px;">${item.expiry}</td>
+            </tr>
+          `;
+        });
+      }
+    });
+  }
+
+  function showLoading() { document.getElementById("loading").classList.remove("d-none"); }
+  function hideLoading() { document.getElementById("loading").classList.add("d-none"); }
+</script>
+</body>
+</html>
