@@ -328,15 +328,29 @@
     }).catch(err => { hideLoading(); });
   }
 
-  // --- THOÁT TÀI KHOẢN (LOGOUT) ---
+// --- THOÁT TÀI KHOẢN (LOGOUT) ---
   function handleLogOut() {
     stopCameraDirectly();
     loggedInUser = "";
     localStorage.removeItem("mes_operator");
+    
+    // 1. Ẩn phân hệ MES và hiển thị lại màn hình Đăng nhập
     document.getElementById("mainMesSection").classList.add("d-none");
     document.getElementById("authSection").classList.remove("d-none");
+    
+    // 2. Reset sạch dữ liệu trên Form đăng nhập (Cập nhật theo yêu cầu của bạn)
+    document.getElementById("loginName").value = "";
     document.getElementById("loginPass").value = "";
-    goToNewBatch();
+    
+    // 3. Reset ngầm các ô nhập liệu của ca làm việc trước (Không gọi hàm goToNewBatch để tránh hiện thông báo mẻ mới)
+    input.value = ""; 
+    currentBatchId = "";
+    document.getElementById("progressContainer").classList.add("d-none");
+    document.getElementById("batchInfoBox").classList.add("d-none");
+    document.getElementById("btnStartCam").disabled = true;
+    
+    // 4. Thông báo ngữ cảnh đăng xuất lịch sự, rõ ràng
+    swal("Đăng xuất thành công!", "Hẹn gặp lại bạn ở ca làm việc tiếp theo.", "success");
   }
 
   // --- AUTOCOMPLETE FORMULA (Giữ nguyên gốc) ---
@@ -422,12 +436,15 @@
     });
   }
 
+// --- HÀM RESET MẺ MỚI (Dùng riêng cho nút "HOÀN TẤT MẺ" trong tab sản xuất) ---
   function goToNewBatch() {
-    input.value = ""; currentBatchId = "";
+    input.value = ""; 
+    currentBatchId = "";
     document.getElementById("progressContainer").classList.add("d-none");
     document.getElementById("batchInfoBox").classList.add("d-none");
     document.getElementById("btnStartCam").disabled = true;
     stopCameraDirectly();
+    // Giữ nguyên thông báo này vì nó hiển thị khi công nhân nhấn "HOÀN TẤT MẺ"
     swal("Sẵn sàng!", "Vui lòng nhập cấu trúc công thức cho mẻ mới.", "info");
   }
 
