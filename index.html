@@ -475,7 +475,7 @@
     }
   }
  
-  // ĐÃ ĐƯỢC CẬP NHẬT: Truyền thêm tham số 'user: loggedInUser' lên server
+ // --- XỬ LÝ KHI QUÉT MÃ QR THÀNH CÔNG ---
   function onScanSuccess(decodedText) {
     if (isProcessingScan) return; 
     isProcessingScan = true; 
@@ -489,29 +489,59 @@
         materialQR: decodedText, 
         formula: formula, 
         batchId: currentBatchId,
-        user: loggedInUser // Đẩy thông tin người vận hành thực tế
+        user: loggedInUser 
       })
     }).then(res => res.json()).then(res => {
       hideLoading();
       if (res.status === "GREAT") {
         
-        let textAlert = `NL: ${res.materialName}\nLô: ${res.lotNumber}\nNạp bao thứ [${res.currentBag}/${res.totalBags}]\n\n`;
+        // 1. Tạo phần tiêu đề và thông tin cơ bản
+        let infoHtml = `
+          <div style="text-align: left; font-size: 15px; color: #333; line-height: 1.6;">
+            <strong>Nguyên liệu:</strong> ${res.materialName}<br>
+            <strong>Số lô:</strong> ${res.lotNumber}<br>
+            <strong>Tiến độ:</strong> Nạp bao thứ <span class="badge bg-primary">${res.currentBag}/${res.totalBags}</span><br>
+          </div>
+        `;
+        
+        // 2. Kiểm tra nếu là BAO LẺ (CÂN LẺ) -> Tạo khung Đỏ, Chữ Vàng/Nổi bật đặc biệt
         if (res.isPartialBag) {
-          textAlert += `⚠️ CÂN LẺ: Chỉ lấy đúng ${res.partialWeight} kg!\n*Hệ thống đã trừ ${(res.partialWeight / res.packSize).toFixed(2)} bao lẻ trong kho.*`;
+          infoHtml += `
+            <div style="margin-top: 15px; padding: 12px; border: 3px solid #dc3545; background-color: #fff3f3; border-radius: 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <span style="display: block; font-size: 20px; font-weight: 900; color: #dc3545; animation: blink 1s infinite; margin-bottom: 5px;">⚠️ CẢNH BÁO CÂN LẺ</span>
+              <span style="display: block; font-size: 18px; font-weight: bold; background-color: #dc3545; color: #ffeb3b; padding: 6px 10px; border-radius: 4px; border: 1px solid #ffeb3b;">
+                CHỈ LẤY ĐÚNG: ${res.partialWeight} KG!
+              </span>
+              <small style="display: block; margin-top: 8px; color: #666; font-style: italic;">
+                * Hệ thống đã tự động trừ ${(res.partialWeight / res.packSize).toFixed(2)} bao lẻ trong kho *
+              </small>
+            </div>
+          `;
         } else {
-          textAlert += `*Hệ thống đã khấu trừ 1 bao nguyên (${res.packSize} kg) từ kho.*`;
+          // Bao chẵn bình thường
+          infoHtml += `
+            <div style="margin-top: 15px; padding: 10px; border: 1px solid #28a745; background-color: #f4fbf7; border-radius: 6px; text-align: center; color: #155724; font-size: 14px;">
+              ✅ <strong>Khấu trừ thành công:</strong> 1 bao nguyên (${res.packSize} kg) đã được xuất kho.
+            </div>
+          `;
         }
 
+        // 3. Khởi tạo một phần tử DOM tạm thời để nhét vào SweetAlert
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = infoHtml;
+
+        // 4. Bật hộp thoại cảnh báo trực quan
         swal({
-          title: "THÀNH CÔNG ✅",
-          text: textAlert,
+          title: "QUÉT THÀNH CÔNG ✅",
+          content: wrapper, // Đưa phần HTML thiết kế riêng vào đây
           icon: "success",
-          timer: res.isPartialBag ? 4500 : 2500,
+          timer: res.isPartialBag ? 6000 : 2500, // Tăng lên 6 giây nếu là bao lẻ để công nhân kịp nhìn cân
           buttons: false
         }).then(() => {
           loadFormulaProgress(formula);
           isProcessingScan = false; 
         });
+
       } else {
         const cleanMessage = res.message.replace(/<\/?[^>]+(>|$)/g, "");
         swal("LỖI QUÉT ❌", cleanMessage, "error").then(() => { isProcessingScan = false; });
