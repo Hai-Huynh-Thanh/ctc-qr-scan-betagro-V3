@@ -160,7 +160,7 @@
  
 <script>
   // QUAN TRỌNG: Hãy thay link bằng URL Web App mới của bạn sau khi Deploy New Deployment
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyaMMB6QjhkdMZie80wgmBDoEfAiaxKOd6UUgfcI-6Iw-AaxEuzvoEmbInqbr8p5fvz/exec"; 
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8NuxH586OSWqtAYIhsSWAl4goilz8CAKTMHI5rzuL0jIQ0h4Oiyedw3zhjAW0RMNr/exec"; 
 
   // --- VARIABLES ---
   let html5Qrcode;
@@ -387,6 +387,7 @@
         document.getElementById("in_pack").value = "";
         document.getElementById("in_bags").value = "";
         document.getElementById("in_weight").value = "";
+        document.getElementById("in_exp").value = ""; // Thêm dòng này để reset HSD
       } else { swal("Lỗi", res.message, "error"); }
     });
   }
