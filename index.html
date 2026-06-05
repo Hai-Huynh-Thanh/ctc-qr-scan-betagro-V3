@@ -143,13 +143,14 @@
               <th>HSD</th>
             </tr>
           </thead>
-          <tbody id="inventoryBody">
-            </tbody>
+          <tbody id="inventoryBody"></tbody>
         </table>
       </div>
     </div>
 
-  </div> <div id="loading" class="text-center my-3 d-none">
+  </div> 
+  
+  <div id="loading" class="text-center my-3 d-none">
     <div class="spinner-border text-primary"></div>
     <div class="mt-2 text-muted">Đang xử lý...</div>
   </div>
@@ -159,8 +160,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
  
 <script>
-  // QUAN TRỌNG: Hãy thay link bằng URL Web App mới của bạn sau khi Deploy New Deployment
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8NuxH586OSWqtAYIhsSWAl4goilz8CAKTMHI5rzuL0jIQ0h4Oiyedw3zhjAW0RMNr/exec"; 
+  // QUAN TRỌNG: Đường dẫn URL Web App đã được đồng bộ hóa
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw-__2hWPp7c3VY5xjgLQf284AkXqSYfnEPG1-ey0gBK6ezFHLNHr1g3j-SmI3vEyG8/exec"; 
 
   // --- VARIABLES ---
   let html5Qrcode;
@@ -170,7 +171,7 @@
   const input = document.getElementById("formula");
   const list = document.getElementById("formulaList");
 
-  // --- INIT ---
+  // --- INITIALIZE ---
   document.addEventListener("DOMContentLoaded", () => {
     html5Qrcode = new Html5Qrcode("reader");
     showLoading();
@@ -201,7 +202,7 @@
     list.classList.remove("d-none");
   });
 
-  // --- CORE SCAN LOGIC ---
+  // --- CORE SYSTEM INTERFACES ---
   function fetchNewBatchIdAndLoadProgress(formulaName) {
     showLoading();
     fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getNextBatchId" }) })
@@ -245,7 +246,7 @@
           div.innerHTML = `
             <div style="max-width: 70%;">
               <strong class="d-block">${item.name}</strong>
-              <small class="text-muted d-block">Mã: ${item.code} | Yêu cầu: ${item.reqWeight}kg</small>
+              <small class="text-muted d-block">Mã: ${item.code} | Yêu cầu: ${item.reqWeight} kg</small>
             </div>
             <div>
               <span class="badge ${isDone ? 'bg-success' : 'bg-warning text-dark'} fs-6">${item.scannedBags}/${item.reqBags} bao</span>
@@ -271,10 +272,10 @@
     document.getElementById("batchInfoBox").classList.add("d-none");
     document.getElementById("btnStartCam").disabled = true;
     stopCameraDirectly();
-    swal("Sẵn sàng!", "Vui lòng nhập công thức cho mẻ mới.", "info");
+    swal("Sẵn sàng!", "Vui lòng nhập cấu trúc công thức cho mẻ mới.", "info");
   }
 
-  // --- CAMERA ---
+  // --- HARDWARE CAMERA HANDLERS ---
   function startCameraDirectly() {
     document.getElementById("reader").style.display = "block";
     document.getElementById("btnStartCam").classList.add("d-none");
@@ -313,23 +314,34 @@
     }).then(res => res.json()).then(res => {
       hideLoading();
       if (res.status === "GREAT") {
+        
+        // TỰ ĐỘNG TÍNH TOÁN HIỂN THỊ THÔNG BÁO THEO QUY CÁCH BAO CHẴN LẺ
+        let textAlert = `NL: ${res.materialName}\nLô: ${res.lotNumber}\nNạp bao thứ [${res.currentBag}/${res.totalBags}]\n\n`;
+        if (res.isPartialBag) {
+          textAlert += `⚠️ CÂN LẺ: Chỉ lấy đúng ${res.partialWeight} kg!\n*Hệ thống đã trừ ${(res.partialWeight / res.packSize).toFixed(2)} bao lẻ trong kho.*`;
+        } else {
+          textAlert += `*Hệ thống đã khấu trừ 1 bao nguyên (${res.packSize} kg) từ kho.*`;
+        }
+
         swal({
           title: "THÀNH CÔNG ✅",
-          text: `NL: ${res.materialName}\nLô: ${res.lotNumber}\nNạp bao thứ [${res.currentBag}/${res.totalBags}]\n\n*Hệ thống đã trừ 1 bao từ kho tồn.*`,
+          text: textAlert,
           icon: "success",
-          timer: 2500,
+          timer: res.isPartialBag ? 4500 : 2500, // Kéo dài thời gian hiển thị nếu là bao lẻ để công nhân đọc kịp số cân
           buttons: false
         }).then(() => {
           loadFormulaProgress(formula);
           isProcessingScan = false; 
         });
       } else {
-        swal("LỖI QUÉT ❌", res.message.replace(/<br>.*$/g, ''), "error").then(() => { isProcessingScan = false; });
+        // Loại bỏ các thẻ HTML để SweetAlert hiển thị nội dung thuần đẹp mắt
+        const cleanMessage = res.message.replace(/<\/?[^>]+(>|$)/g, "");
+        swal("LỖI QUÉT ❌", cleanMessage, "error").then(() => { isProcessingScan = false; });
       }
     }).catch(err => { hideLoading(); isProcessingScan = false; });
   }
 
-  // --- WAREHOUSE FUNCTIONS ---
+  // --- INBOUND WAREHOUSE OPERATIONS ---
   function autoLookupName() {
     const code = document.getElementById("in_code").value.trim();
     if(!code) return;
@@ -380,19 +392,19 @@
         document.getElementById("qrStringOutput").innerText = qrString;
         document.getElementById("qrGenResult").classList.remove("d-none");
         
-        // Clear forms
+        // Reset forms
         document.getElementById("in_code").value = "";
         document.getElementById("in_name").value = "";
         document.getElementById("in_lot").value = "";
         document.getElementById("in_pack").value = "";
         document.getElementById("in_bags").value = "";
         document.getElementById("in_weight").value = "";
-        document.getElementById("in_exp").value = ""; // Thêm dòng này để reset HSD
+        document.getElementById("in_exp").value = "";
       } else { swal("Lỗi", res.message, "error"); }
     });
   }
 
-  // --- INVENTORY FUNCTIONS ---
+  // --- REPORTING INVENTORY HANDLERS ---
   function loadInventory() {
     showLoading();
     fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getInventory" }) })
