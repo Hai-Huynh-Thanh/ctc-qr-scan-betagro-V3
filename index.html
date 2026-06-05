@@ -29,11 +29,16 @@
     .batch-container { background: #e3f2fd; border: 1px solid #90caf9; border-radius: 6px; padding: 8px 12px; margin-top: 10px; }
     
     .table-sm td, .table-sm th { font-size: 12px; }
+
+    /* CSS Thêm cho màn hình đăng nhập */
+    .auth-box { padding: 15px; border-radius: 12px; background: #f8f9fa; border: 1px solid #dee2e6; margin-top: 10px; }
+    .user-badge { font-size: 11px; background: #e9ecef; color: #495057; padding: 4px 8px; border-radius: 20px; font-weight: 500; text-transform: uppercase; }
   </style>
 </head>
 <body>
  
 <div class="app-box">
+  
   <div class="header">
     <img src="https://ctcbio.com.vn/wp-content/uploads/2017/06/logo-ctc2-250x250.jpg" class="logo">
     <div class="title">
@@ -42,113 +47,163 @@
     </div>
   </div>
 
-  <ul class="nav nav-pills nav-fill mb-3" id="pills-tab" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-scan">Quét SX</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-import">Nhập Kho</button>
-    </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-inventory" onclick="loadInventory()">Tồn Kho</button>
-    </li>
-  </ul>
+  <div id="authSection">
+    <div id="signInForm" class="auth-box shadow-sm">
+      <h5 class="fw-bold text-center text-primary mb-3">🔐 ĐĂNG NHẬP VẬN HÀNH</h5>
+      <div class="mb-3">
+        <label class="form-label text-muted mb-1" style="font-size:13px;">Tên đăng nhập (Họ tên viết liền không dấu)</label>
+        <input type="text" id="loginName" class="form-control" placeholder="Ví dụ: hungnguyen">
+      </div>
+      <div class="mb-3">
+        <label class="form-label text-muted mb-1" style="font-size:13px;">Mật khẩu</label>
+        <input type="password" id="loginPass" class="form-control" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary w-100 mb-2" onclick="handleSignIn()">Đăng Nhập</button>
+      <div class="text-center mt-2">
+        <a href="#" style="font-size:13px; text-decoration:none;" onclick="toggleAuthForms(true)">Chưa có tài khoản? Đăng ký tại đây</a>
+      </div>
+    </div>
 
-  <div class="tab-content">
+    <div id="signUpForm" class="auth-box shadow-sm d-none">
+      <h5 class="fw-bold text-center text-success mb-3">📝 ĐĂNG KÝ THÀNH VIÊN</h5>
+      <div class="mb-2">
+        <label class="form-label text-muted mb-1" style="font-size:13px;">Tên tài khoản (Viết liền không dấu)</label>
+        <input type="text" id="regName" class="form-control" placeholder="Ví dụ: hungnguyen">
+      </div>
+      <div class="mb-2">
+        <label class="form-label text-muted mb-1" style="font-size:13px;">Email nội bộ</label>
+        <input type="email" id="regEmail" class="form-control" placeholder="name@ctcbio.com.vn">
+      </div>
+      <div class="mb-3">
+        <label class="form-label text-muted mb-1" style="font-size:13px;">Mật khẩu bảo mật</label>
+        <input type="password" id="regPass" class="form-control" placeholder="Nhập mật khẩu tự chọn">
+      </div>
+      <button class="btn btn-success w-100 mb-2" onclick="handleSignUp()">Gửi Đăng Ký Chờ Phê Duyệt</button>
+      <div class="text-center mt-1">
+        <a href="#" style="font-size:13px; text-decoration:none;" class="text-muted" onclick="toggleAuthForms(false)">← Quay lại Đăng nhập</a>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="mainMesSection" class="d-none">
     
-    <div class="tab-pane fade show active" id="tab-scan">
-      <div class="mb-3 position-relative">
-        <label class="form-label fw-bold text-dark mb-0">Công thức đang sản xuất</label>
-        <input type="text" class="form-control form-control-lg" id="formula" placeholder="🔍 Gõ tìm công thức..." autocomplete="off">
-        <ul id="formulaList" class="list-group position-absolute w-100 d-none" style="z-index:1000; max-height:200px; overflow-y:auto;"></ul>
-      </div>
-
-      <div id="batchInfoBox" class="batch-container d-none">
-        <div class="d-flex justify-content-between align-items-center">
-          <div><span class="fw-bold text-dark d-block" style="font-size: 14px;">Mã số mẻ:</span></div>
-          <div id="txtBatchId" class="badge bg-primary fs-5 font-monospace">000B40000</div>
-        </div>
-      </div>
-     
-      <div id="progressContainer" class="progress-box d-none">
-        <div class="fw-bold text-dark border-bottom pb-1 mb-2">📋 Tiến trình nạp:</div>
-        <div id="bomList"></div>
-        <div id="batchCompleteZone" class="mt-3 d-none">
-           <button class="btn btn-primary btn-lg w-100 shadow" onclick="goToNewBatch()">🎉 HOÀN TẤT MẺ</button>
-        </div>
-      </div>
-     
-      <div class="d-grid gap-2 my-3">
-        <button class="btn btn-custom-cam btn-lg shadow-sm" id="btnStartCam" onclick="startCameraDirectly()" disabled>📷 Bật Camera</button>
-        <button class="btn btn-danger btn-lg d-none shadow-sm" id="btnStopCam" onclick="stopCameraDirectly()">🛑 Tắt Camera</button>
-      </div>
-      <div id="reader" class="mb-3 shadow-sm"></div>
-    </div>
-
-    <div class="tab-pane fade" id="tab-import">
-      <div class="card shadow-sm border-0">
-        <div class="card-body bg-light rounded">
-          <h6 class="fw-bold mb-3 text-primary">📦 Nhập hàng vào kho (Inbound)</h6>
-          <div class="mb-2">
-            <label class="form-label text-muted mb-0">Mã nguyên liệu (Code)</label>
-            <input type="text" id="in_code" class="form-control" onchange="autoLookupName()" placeholder="Nhập Code và ấn Enter/Tab">
-          </div>
-          <div class="mb-2">
-            <label class="form-label text-muted mb-0">Tên nguyên liệu</label>
-            <input type="text" id="in_name" class="form-control" readonly style="background:#e9ecef;">
-          </div>
-          <div class="mb-2">
-            <label class="form-label text-muted mb-0 fw-bold text-danger">Số Lô (Lot Number) *</label>
-            <input type="text" id="in_lot" class="form-control" placeholder="VD: L00123">
-          </div>
-          <div class="row mb-2">
-            <div class="col-6">
-              <label class="form-label text-muted mb-0">Quy cách (kg/bao)</label>
-              <input type="number" id="in_pack" class="form-control" oninput="calcWeight()">
-            </div>
-            <div class="col-6">
-              <label class="form-label text-muted mb-0">Số lượng (Bao)</label>
-              <input type="number" id="in_bags" class="form-control" oninput="calcWeight()">
-            </div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-6">
-              <label class="form-label text-muted mb-0">Khối lượng (kg)</label>
-              <input type="number" id="in_weight" class="form-control" readonly style="background:#e9ecef;">
-            </div>
-            <div class="col-6">
-              <label class="form-label text-muted mb-0">Hạn sử dụng</label>
-              <input type="date" id="in_exp" class="form-control">
-            </div>
-          </div>
-          <button class="btn btn-success w-100" onclick="submitWarehouse()">Lưu vào kho & Tạo QR</button>
-          
-          <div id="qrGenResult" class="mt-3 p-2 bg-white border rounded d-none text-center">
-            <small class="d-block text-muted">Chuỗi QR gợi ý (in ra tem):</small>
-            <strong id="qrStringOutput" class="text-dark"></strong>
-          </div>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+      <span class="text-muted" style="font-size:13px;">Người vận hành:</span>
+      <div class="d-flex align-items-center gap-2">
+        <span id="currentOperatorBadge" class="user-badge">OFFLINE</span>
+        <button class="btn btn-sm btn-link text-danger p-0 m-0" style="font-size:12px; text-decoration:none;" onclick="handleLogOut()">[Thoát]</button>
       </div>
     </div>
 
-    <div class="tab-pane fade" id="tab-inventory">
-      <button class="btn btn-outline-primary btn-sm mb-2 w-100" onclick="loadInventory()">🔄 Cập nhật Tồn kho</button>
-      <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
-        <table class="table table-sm table-bordered table-striped bg-white text-center">
-          <thead class="table-dark sticky-top">
-            <tr>
-              <th>Tên NL</th>
-              <th>Số Lô</th>
-              <th>Tồn(Bao)</th>
-              <th>HSD</th>
-            </tr>
-          </thead>
-          <tbody id="inventoryBody"></tbody>
-        </table>
-      </div>
-    </div>
+    <ul class="nav nav-pills nav-fill mb-3" id="pills-tab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-scan">Quét SX</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-import">Nhập Kho</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-inventory" onclick="loadInventory()">Tồn Kho</button>
+      </li>
+    </ul>
 
-  </div> 
+    <div class="tab-content">
+      
+      <div class="tab-pane fade show active" id="tab-scan">
+        <div class="mb-3 position-relative">
+          <label class="form-label fw-bold text-dark mb-0">Công thức đang sản xuất</label>
+          <input type="text" class="form-control form-control-lg" id="formula" placeholder="🔍 Gõ tìm công thức..." autocomplete="off">
+          <ul id="formulaList" class="list-group position-absolute w-100 d-none" style="z-index:1000; max-height:200px; overflow-y:auto;"></ul>
+        </div>
+
+        <div id="batchInfoBox" class="batch-container d-none">
+          <div class="d-flex justify-content-between align-items-center">
+            <div><span class="fw-bold text-dark d-block" style="font-size: 14px;">Mã số mẻ:</span></div>
+            <div id="txtBatchId" class="badge bg-primary fs-5 font-monospace">000B40000</div>
+          </div>
+        </div>
+       
+        <div id="progressContainer" class="progress-box d-none">
+          <div class="fw-bold text-dark border-bottom pb-1 mb-2">📋 Tiến trình nạp:</div>
+          <div id="bomList"></div>
+          <div id="batchCompleteZone" class="mt-3 d-none">
+             <button class="btn btn-primary btn-lg w-100 shadow" onclick="goToNewBatch()">🎉 HOÀN TẤT MẺ</button>
+          </div>
+        </div>
+       
+        <div class="d-grid gap-2 my-3">
+          <button class="btn btn-custom-cam btn-lg shadow-sm" id="btnStartCam" onclick="startCameraDirectly()" disabled>📷 Bật Camera</button>
+          <button class="btn btn-danger btn-lg d-none shadow-sm" id="btnStopCam" onclick="stopCameraDirectly()">🛑 Tắt Camera</button>
+        </div>
+        <div id="reader" class="mb-3 shadow-sm"></div>
+      </div>
+
+      <div class="tab-pane fade" id="tab-import">
+        <div class="card shadow-sm border-0">
+          <div class="card-body bg-light rounded">
+            <h6 class="fw-bold mb-3 text-primary">📦 Nhập hàng vào kho (Inbound)</h6>
+            <div class="mb-2">
+              <label class="form-label text-muted mb-0">Mã nguyên liệu (Code)</label>
+              <input type="text" id="in_code" class="form-control" onchange="autoLookupName()" placeholder="Nhập Code và ấn Enter/Tab">
+            </div>
+            <div class="mb-2">
+              <label class="form-label text-muted mb-0">Tên nguyên liệu</label>
+              <input type="text" id="in_name" class="form-control" readonly style="background:#e9ecef;">
+            </div>
+            <div class="mb-2">
+              <label class="form-label text-muted mb-0 fw-bold text-danger">Số Lô (Lot Number) *</label>
+              <input type="text" id="in_lot" class="form-control" placeholder="VD: L00123">
+            </div>
+            <div class="row mb-2">
+              <div class="col-6">
+                <label class="form-label text-muted mb-0">Quy cách (kg/bao)</label>
+                <input type="number" id="in_pack" class="form-control" oninput="calcWeight()">
+              </div>
+              <div class="col-6">
+                <label class="form-label text-muted mb-0">Số lượng (Bao)</label>
+                <input type="number" id="in_bags" class="form-control" oninput="calcWeight()">
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-6">
+                <label class="form-label text-muted mb-0">Khối lượng (kg)</label>
+                <input type="number" id="in_weight" class="form-control" readonly style="background:#e9ecef;">
+              </div>
+              <div class="col-6">
+                <label class="form-label text-muted mb-0">Hạn sử dụng</label>
+                <input type="date" id="in_exp" class="form-control">
+              </div>
+            </div>
+            <button class="btn btn-success w-100" onclick="submitWarehouse()">Lưu vào kho & Tạo QR</button>
+            
+            <div id="qrGenResult" class="mt-3 p-2 bg-white border rounded d-none text-center">
+              <small class="d-block text-muted">Chuỗi QR gợi ý (in ra tem):</small>
+              <strong id="qrStringOutput" class="text-dark"></strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="tab-inventory">
+        <button class="btn btn-outline-primary btn-sm mb-2 w-100" onclick="loadInventory()">🔄 Cập nhật Tồn kho</button>
+        <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+          <table class="table table-sm table-bordered table-striped bg-white text-center">
+            <thead class="table-dark sticky-top">
+              <tr>
+                <th>Tên NL</th>
+                <th>Số Lô</th>
+                <th>Tồn(Bao)</th>
+                <th>HSD</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div> 
+  </div>
   
   <div id="loading" class="text-center my-3 d-none">
     <div class="spinner-border text-primary"></div>
@@ -160,20 +215,110 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
  
 <script>
-  // QUAN TRỌNG: Đường dẫn URL Web App đã được đồng bộ hóa
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw-__2hWPp7c3VY5xjgLQf284AkXqSYfnEPG1-ey0gBK6ezFHLNHr1g3j-SmI3vEyG8/exec"; 
+  // URL Web App đồng bộ hệ thống
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzgMv7z0VW1Gsl-XFpTAQUwf23lp38Wl5u8KW3feEWzQhul3fBxTFfKCI30zHc6OsIo/exec"; 
 
-  // --- VARIABLES ---
+  // --- VARIABLES CHUNG ---
   let html5Qrcode;
   let allFormulas = [];
   let isProcessingScan = false;
   let currentBatchId = "";
+  let loggedInUser = ""; // Biến lưu tên người vận hành sau khi đăng nhập thành công
+  
   const input = document.getElementById("formula");
   const list = document.getElementById("formulaList");
 
   // --- INITIALIZE ---
   document.addEventListener("DOMContentLoaded", () => {
     html5Qrcode = new Html5Qrcode("reader");
+    
+    // Kiểm tra trạng thái Session đã đăng nhập trước đó chưa để đỡ mất công gõ lại
+    const savedUser = localStorage.getItem("mes_operator");
+    if (savedUser) {
+      loggedInUser = savedUser;
+      showMainMesInterface();
+    }
+  });
+
+  // --- CHUYỂN ĐỔI FORM ĐĂNG KÝ / ĐĂNG NHẬP ---
+  function toggleAuthForms(showSignUp) {
+    if (showSignUp) {
+      document.getElementById("signInForm").classList.add("d-none");
+      document.getElementById("signUpForm").classList.remove("d-none");
+    } else {
+      document.getElementById("signUpForm").classList.add("d-none");
+      document.getElementById("signInForm").classList.remove("d-none");
+    }
+  }
+
+  // --- XỬ LÝ ĐĂNG KÝ (SIGN UP INTERFACES) ---
+  function handleSignUp() {
+    const name = document.getElementById("regName").value.trim();
+    const email = document.getElementById("regEmail").value.trim();
+    const password = document.getElementById("regPass").value.trim();
+
+    if (!name || !email || !password) {
+      swal("Lỗi nhập liệu", "Vui lòng điền đầy đủ thông tin đăng ký!", "warning");
+      return;
+    }
+
+    showLoading();
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "signUp", name: name, email: email, password: password })
+    })
+    .then(res => res.json())
+    .then(res => {
+      hideLoading();
+      if (res.status === "SUCCESS") {
+        swal("Đăng ký thành công! 🎉", "Tài khoản của bạn đã được ghi nhận ở trạng thái chờ duyệt. Hãy báo bộ phận quản lý (Admin) bật cột Approval Status lên số 1 để đăng nhập nhé!", "success");
+        toggleAuthForms(false);
+        document.getElementById("regName").value = "";
+        document.getElementById("regEmail").value = "";
+        document.getElementById("regPass").value = "";
+      } else {
+        swal("Lỗi Đăng Ký", res.message, "error");
+      }
+    }).catch(() => { hideLoading(); });
+  }
+
+  // --- XỬ LÝ ĐĂNG NHẬP (SIGN IN INTERFACES) ---
+  function handleSignIn() {
+    const name = document.getElementById("loginName").value.trim();
+    const password = document.getElementById("loginPass").value.trim();
+
+    if (!name || !password) {
+      swal("Trống thông tin", "Vui lòng nhập Tên tài khoản và Mật khẩu!", "warning");
+      return;
+    }
+
+    showLoading();
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "signIn", name: name, password: password })
+    })
+    .then(res => res.json())
+    .then(res => {
+      hideLoading();
+      if (res.status === "SUCCESS") {
+        loggedInUser = name;
+        localStorage.setItem("mes_operator", name); // Lưu vào bộ nhớ trình duyệt điện thoại
+        swal("Đăng nhập thành công ✅", "Chào mừng bạn quay trở lại ca sản xuất!", "success").then(() => {
+          showMainMesInterface();
+        });
+      } else {
+        swal("Đăng nhập thất bại ❌", res.message, "error");
+      }
+    }).catch(() => { hideLoading(); });
+  }
+
+  // --- MỞ KHÓA GIAO DIỆN CHÍNH ---
+  function showMainMesInterface() {
+    document.getElementById("authSection").classList.add("d-none");
+    document.getElementById("currentOperatorBadge").textContent = loggedInUser;
+    document.getElementById("mainMesSection").classList.remove("d-none");
+    
+    // Tiến hành tải danh mục công thức gốc của bạn ngay khi mở khóa thành công
     showLoading();
     fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getAllowedFormulas" }) })
     .then(res => res.json())
@@ -181,9 +326,20 @@
       hideLoading();
       if (res.status === "SUCCESS") { allFormulas = res.data; } 
     }).catch(err => { hideLoading(); });
-  });
+  }
 
-  // --- AUTOCOMPLETE FORMULA ---
+  // --- THOÁT TÀI KHOẢN (LOGOUT) ---
+  function handleLogOut() {
+    stopCameraDirectly();
+    loggedInUser = "";
+    localStorage.removeItem("mes_operator");
+    document.getElementById("mainMesSection").classList.add("d-none");
+    document.getElementById("authSection").classList.remove("d-none");
+    document.getElementById("loginPass").value = "";
+    goToNewBatch();
+  }
+
+  // --- AUTOCOMPLETE FORMULA (Giữ nguyên gốc) ---
   input.addEventListener("input", () => {
     const keyword = input.value.toUpperCase().trim();
     list.innerHTML = "";
@@ -202,7 +358,7 @@
     list.classList.remove("d-none");
   });
 
-  // --- CORE SYSTEM INTERFACES ---
+  // --- QUY TRÌNH QUẢN LÝ MẺ & ĐỊNH MỨC ---
   function fetchNewBatchIdAndLoadProgress(formulaName) {
     showLoading();
     fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getNextBatchId" }) })
@@ -275,7 +431,7 @@
     swal("Sẵn sàng!", "Vui lòng nhập cấu trúc công thức cho mẻ mới.", "info");
   }
 
-  // --- HARDWARE CAMERA HANDLERS ---
+  // --- CAMERA HARDWARE OPERATION (Giữ nguyên gốc) ---
   function startCameraDirectly() {
     document.getElementById("reader").style.display = "block";
     document.getElementById("btnStartCam").classList.add("d-none");
@@ -292,7 +448,7 @@
   }
  
   function stopCameraDirectly() {
-    if (html5Qrcode) {
+    if (html5Qrcode && html5Qrcode.isScanning) {
       html5Qrcode.stop().then(() => {
         document.getElementById("reader").style.display = "none";
         document.getElementById("btnStartCam").classList.remove("d-none");
@@ -302,6 +458,7 @@
     }
   }
  
+  // ĐÃ ĐƯỢC CẬP NHẬT: Truyền thêm tham số 'user: loggedInUser' lên server
   function onScanSuccess(decodedText) {
     if (isProcessingScan) return; 
     isProcessingScan = true; 
@@ -310,12 +467,17 @@
  
     fetch(WEB_APP_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "scanMaterial", materialQR: decodedText, formula: formula, batchId: currentBatchId })
+      body: JSON.stringify({ 
+        action: "scanMaterial", 
+        materialQR: decodedText, 
+        formula: formula, 
+        batchId: currentBatchId,
+        user: loggedInUser // Đẩy thông tin người vận hành thực tế
+      })
     }).then(res => res.json()).then(res => {
       hideLoading();
       if (res.status === "GREAT") {
         
-        // TỰ ĐỘNG TÍNH TOÁN HIỂN THỊ THÔNG BÁO THEO QUY CÁCH BAO CHẴN LẺ
         let textAlert = `NL: ${res.materialName}\nLô: ${res.lotNumber}\nNạp bao thứ [${res.currentBag}/${res.totalBags}]\n\n`;
         if (res.isPartialBag) {
           textAlert += `⚠️ CÂN LẺ: Chỉ lấy đúng ${res.partialWeight} kg!\n*Hệ thống đã trừ ${(res.partialWeight / res.packSize).toFixed(2)} bao lẻ trong kho.*`;
@@ -327,21 +489,20 @@
           title: "THÀNH CÔNG ✅",
           text: textAlert,
           icon: "success",
-          timer: res.isPartialBag ? 4500 : 2500, // Kéo dài thời gian hiển thị nếu là bao lẻ để công nhân đọc kịp số cân
+          timer: res.isPartialBag ? 4500 : 2500,
           buttons: false
         }).then(() => {
           loadFormulaProgress(formula);
           isProcessingScan = false; 
         });
       } else {
-        // Loại bỏ các thẻ HTML để SweetAlert hiển thị nội dung thuần đẹp mắt
         const cleanMessage = res.message.replace(/<\/?[^>]+(>|$)/g, "");
         swal("LỖI QUÉT ❌", cleanMessage, "error").then(() => { isProcessingScan = false; });
       }
     }).catch(err => { hideLoading(); isProcessingScan = false; });
   }
 
-  // --- INBOUND WAREHOUSE OPERATIONS ---
+  // --- TRUY XUẤT THÔNG TIN NHẬP KHO (Giữ nguyên gốc) ---
   function autoLookupName() {
     const code = document.getElementById("in_code").value.trim();
     if(!code) return;
@@ -366,6 +527,7 @@
     document.getElementById("in_weight").value = (pack * bags).toFixed(2);
   }
 
+  // ĐÃ ĐƯỢC CẬP NHẬT: Thêm biến 'user: loggedInUser' lưu dấu người tạo thẻ kho lô hàng
   function submitWarehouse() {
     const data = {
       code: document.getElementById("in_code").value.trim(),
@@ -374,7 +536,8 @@
       packSize: parseFloat(document.getElementById("in_pack").value) || 0,
       bags: parseFloat(document.getElementById("in_bags").value) || 0,
       weight: parseFloat(document.getElementById("in_weight").value) || 0,
-      expiry: document.getElementById("in_exp").value
+      expiry: document.getElementById("in_exp").value,
+      user: loggedInUser // Ghi nhận người nhập kho
     };
 
     if(!data.code || !data.name || !data.lot || data.bags <= 0) {
@@ -404,7 +567,7 @@
     });
   }
 
-  // --- REPORTING INVENTORY HANDLERS ---
+  // --- TRUY XUẤT DỮ LIỆU TỒN KHO (Giữ nguyên gốc) ---
   function loadInventory() {
     showLoading();
     fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify({ action: "getInventory" }) })
