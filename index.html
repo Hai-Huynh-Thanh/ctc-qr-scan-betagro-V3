@@ -575,19 +575,26 @@
   }
 
   // ĐÃ ĐƯỢC CẬP NHẬT: Thêm biến 'user: loggedInUser' lưu dấu người tạo thẻ kho lô hàng
+  // ĐÃ ĐƯỢC CẢI TIẾN: Ép Google Sheet hiểu số Lô có số 0 ở đầu là dạng Text
   function submitWarehouse() {
+    const rawLot = document.getElementById("in_lot").value.trim();
+    
+    // Nếu số lô bắt đầu bằng số 0, thêm dấu nháy đơn (') phía trước để ép Sheet định dạng Text
+    // Dấu nháy đơn này chỉ có nhiệm vụ báo hiệu cho Sheet, khi hiển thị trên Sheet vẫn là 051226 bình thường
+    const formattedLot = rawLot.startsWith("0") ? "'" + rawLot : rawLot;
+
     const data = {
       code: document.getElementById("in_code").value.trim(),
       name: document.getElementById("in_name").value.trim(),
-      lot: document.getElementById("in_lot").value.trim(),
+      lot: formattedLot, // Sử dụng số lô đã được xử lý chống mất số 0
       packSize: parseFloat(document.getElementById("in_pack").value) || 0,
       bags: parseFloat(document.getElementById("in_bags").value) || 0,
       weight: parseFloat(document.getElementById("in_weight").value) || 0,
       expiry: document.getElementById("in_exp").value,
-      user: loggedInUser // Ghi nhận người nhập kho
+      user: loggedInUser 
     };
 
-    if(!data.code || !data.name || !data.lot || data.bags <= 0) {
+    if(!data.code || !data.name || !rawLot || data.bags <= 0) {
       swal("Thiếu thông tin", "Vui lòng điền đủ Code, Tên, Số Lô và Số bao > 0", "warning");
       return;
     }
@@ -598,7 +605,9 @@
       hideLoading();
       if(res.status === "SUCCESS") {
         swal("Thành công", "Đã nhập nguyên liệu vào kho!", "success");
-        const qrString = `${data.code}_${data.lot}`;
+        
+        // Khi tạo chuỗi QR gợi ý, ta dùng 'rawLot' gốc (không chứa dấu nháy đơn) để mã QR sạch đẹp
+        const qrString = `${data.code}_${rawLot}`;
         document.getElementById("qrStringOutput").innerText = qrString;
         document.getElementById("qrGenResult").classList.remove("d-none");
         
